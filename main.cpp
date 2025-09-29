@@ -2,6 +2,12 @@
 #include <cstdlib>
 #include <SDL3/SDL.h>
 
+
+template <typename T>
+T max(T a, T b){
+    return a < b ? b : a;
+}
+
 // Just for checking the error
 int sdl(int code)
 {
@@ -24,7 +30,7 @@ T *sdl(T *ptr)
     return ptr;
 }
 
-constexpr int TILE_SIZE = 69;
+int TILE_SIZE = 69;
 
 int main(int argc, char *argv[])
 {
@@ -49,6 +55,14 @@ int main(int argc, char *argv[])
                 quit = true;
             }
             break;
+            case SDL_EVENT_MOUSE_WHEEL: // Basically Zoom functionality
+            {
+                TILE_SIZE = max(0.0f, TILE_SIZE + event.wheel.y);
+                char title[256];
+                snprintf(title, 256, "Tile size is %d", TILE_SIZE);
+                SDL_SetWindowTitle(window, title);
+            }
+            break;
             }
         }
         // Update state
@@ -65,11 +79,11 @@ int main(int argc, char *argv[])
         sdl(SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255));
         for (int row = 0; row < rows; row++)
         {
-            sdl(SDL_RenderLine(renderer, 0, (row+1) * TILE_SIZE, windowWidth, (row+1) * TILE_SIZE));
+            sdl(SDL_RenderLine(renderer, 0, (row + 1) * TILE_SIZE, windowWidth, (row + 1) * TILE_SIZE));
         }
         for (int column = 0; column < columns; column++)
         {
-            sdl(SDL_RenderLine(renderer, (column+1) * TILE_SIZE, 0 , (column+1) * TILE_SIZE, windowHeight));
+            sdl(SDL_RenderLine(renderer, (column + 1) * TILE_SIZE, 0, (column + 1) * TILE_SIZE, windowHeight));
         }
 
         SDL_RenderPresent(renderer);
