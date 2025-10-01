@@ -2,9 +2,9 @@
 #include <cstdlib>
 #include <SDL3/SDL.h>
 
-
 template <typename T>
-T max(T a, T b){
+T max(T a, T b)
+{
     return a < b ? b : a;
 }
 
@@ -30,7 +30,48 @@ T *sdl(T *ptr)
     return ptr;
 }
 
-int TILE_SIZE = 69;
+float TILE_SIZE = 69;
+
+enum class Tile
+{
+    Empty = 0,
+    Wall
+};
+
+constexpr int LEVEL_WIDTH = 5;
+constexpr int LEVEL_HEIGHT = 5;
+
+Tile level[LEVEL_HEIGHT][LEVEL_WIDTH] = {
+    {Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty},
+    {Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty},
+    {Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty},
+    {Tile::Wall, Tile::Wall, Tile::Wall, Tile::Empty, Tile::Empty},
+    {Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty},
+};
+
+void renderLevel(SDL_Renderer *renderer){
+    for(int y = 0; y < LEVEL_HEIGHT; ++y){
+        for(int x = 0; x < LEVEL_WIDTH; ++x){
+            switch (level[y][x])
+            {
+            case Tile::Empty:{
+            }break;
+            case Tile::Wall:{
+                sdl(SDL_SetRenderDrawColor(renderer, 255, 100, 100, 255));
+                SDL_FRect rect = {
+                    x * TILE_SIZE,
+                    y * TILE_SIZE,
+                    TILE_SIZE,
+                    TILE_SIZE
+                }; 
+                sdl(SDL_RenderFillRect(renderer, &rect));
+            }break;
+            default:
+                break;
+            }
+        }
+    }
+}
 
 int main(int argc, char *argv[])
 {
@@ -55,37 +96,14 @@ int main(int argc, char *argv[])
                 quit = true;
             }
             break;
-            case SDL_EVENT_MOUSE_WHEEL: // Basically Zoom functionality
-            {
-                TILE_SIZE = max(0.0f, TILE_SIZE + event.wheel.y);
-                char title[256];
-                snprintf(title, 256, "Tile size is %d", TILE_SIZE);
-                SDL_SetWindowTitle(window, title);
-            }
-            break;
             }
         }
         // Update state
         // Render state
         sdl(SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255));
         sdl(SDL_RenderClear(renderer));
-
-        int windowWidth = 0;
-        int windowHeight = 0;
-        SDL_GetWindowSize(window, &windowWidth, &windowHeight);
-        // to get column and row just divide the window size with tile
-        int columns = windowWidth / TILE_SIZE;
-        int rows = windowHeight / TILE_SIZE;
-        sdl(SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255));
-        for (int row = 0; row < rows; row++)
-        {
-            sdl(SDL_RenderLine(renderer, 0, (row + 1) * TILE_SIZE, windowWidth, (row + 1) * TILE_SIZE));
-        }
-        for (int column = 0; column < columns; column++)
-        {
-            sdl(SDL_RenderLine(renderer, (column + 1) * TILE_SIZE, 0, (column + 1) * TILE_SIZE, windowHeight));
-        }
-
+        
+        renderLevel(renderer);
         SDL_RenderPresent(renderer);
     }
     SDL_Quit();
