@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <SDL3/SDL.h>
+#include <png.h>
 
 template <typename T>
 T max(T a, T b)
@@ -82,6 +83,26 @@ int main(int argc, char *argv[])
     SDL_Window *window = sdl(SDL_CreateWindow("something", 800, 600, SDL_WINDOW_RESIZABLE));
     // Not just above will work, we have to render by renderer
     SDL_Renderer *renderer = sdl(SDL_CreateRenderer(window, SDL_GetRenderDriver(0)));
+
+    //1. Declare 'png_image' structure on the stack
+    png_image tileset;
+    memset(&tileset, 0, sizeof(tileset));
+
+    //2. set the version field to PNG_IMAGE_VERSION
+    tileset.version = PNG_IMAGE_VERSION;
+
+    //3. Appropriate begin to read image from file 
+    png_image_begin_read_from_file(&tileset, "fantasy_tiles.png");
+    printf("Width: %d, Height: %d/n", tileset.width, tileset.height);
+
+    //4. Allocating buffer for the image
+    uint32_t *tileset_buffer = (uint32_t *) malloc(sizeof(uint32_t) * tileset.width * tileset.height);
+
+    //5. Calling img finish read to read the image
+    png_image_finish_read(&tileset, nullptr, tileset_buffer, 0, nullptr);
+
+    // Make the sdl_surface created by the rgb_surface
+    SDL_Surface *tileset_surface = SDL_Creat
 
     bool quit = false;
     while (!quit) //! This is basically an event loop we are creating
