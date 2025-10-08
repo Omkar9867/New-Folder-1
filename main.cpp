@@ -44,8 +44,8 @@ const int LEVEL_HEIGHT = 5;
 
 Tile level[LEVEL_HEIGHT][LEVEL_WIDTH] = {
     {Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty},
-    {Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty},
     {Tile::Empty, Tile::Wall, Tile::Empty, Tile::Empty, Tile::Empty},
+    {Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty},
     {Tile::Wall, Tile::Wall, Tile::Wall, Tile::Empty, Tile::Empty},
     {Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty, Tile::Empty},
 };
@@ -55,8 +55,7 @@ struct Tile_Texture{
     SDL_Texture *texture;
 };
 
-void render_tile_texture(SDL_Renderer *renderer, Tile_Texture texture, int x, int y){
-    SDL_FRect dstrect = {x, y, TILE_SIZE, TILE_SIZE}; 
+void render_tile_texture(SDL_Renderer *renderer, Tile_Texture texture, SDL_FRect dstrect){
     sdl(SDL_RenderTexture(renderer, texture.texture, &texture.srcrect, &dstrect ));
 }
 
@@ -75,7 +74,7 @@ void renderLevel(SDL_Renderer *renderer, Tile_Texture wall_texture){
                 //     TILE_SIZE,
                 //     TILE_SIZE
                 // }; 
-                render_tile_texture(renderer, wall_texture, x * TILE_SIZE, y * TILE_SIZE);
+                render_tile_texture(renderer, wall_texture, {x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE});
                 // sdl(SDL_RenderFillRect(renderer, &rect));
             }break;
             default:
@@ -146,26 +145,63 @@ int main(int argc, char *argv[])
     };
     
     //--------------- Walking man effect-----------------------
-    const char* character_filename = "walking-12px.png"; //Todo: Replace with own assets
-    SDL_Texture *player_walking_texture = load_texture_from_png_file(character_filename, renderer);
+    const char* character_filename = "walking-12px-zoom.png"; //Todo: Replace with own assets
+    SDL_Texture *walking_texture = load_texture_from_png_file(character_filename, renderer);
 
     constexpr int walking_frame_size = 48;
-    constexpr int walking_animation_count = 4;
-    Tile_Texture walking_animation[walking_animation_count];
+    constexpr int walking_frame_count = 4;
+    constexpr int walking_frame_duration = 100;
+    int walking_frame_current = 0;
+    Tile_Texture walking_frames[walking_frame_count];
 
-    for(int i = 0; i < walking_animation_count; ++i){
-        walking_animation[i].srcrect = {
+    for(int i = 0; i < walking_frame_count; ++i){
+        walking_frames[i].srcrect = {
             .x = static_cast<float>(i * walking_frame_size),
             .y = 0.0f,
             .w = static_cast<float>(walking_frame_size),
             .h = static_cast<float>(walking_frame_size)
         };
-        walking_animation[i].texture = player_walking_texture;
+        walking_frames[i].texture = walking_texture;
     }
 
+    //! for debugging after creating walking_texture
+    // float tex_w = 0.0f, tex_h = 0.0f;
+    // if (!SDL_GetTextureSize(walking_texture, &tex_w, &tex_h)) {
+    //     fprintf(stderr, "SDL_GetTextureSize failed: %s\n", SDL_GetError());
+    // } else {
+    //     printf("walking_texture size: %.0f x %.0f\n", tex_w, tex_h);
+    // }
+
+    // float frame_w = tex_w / walking_frame_count;
+    // float frame_h = tex_h; // assuming one row of frames
+    // printf("derived frame size: %.1f x %.1f\n", frame_w, frame_h);
+
+    // for (int i = 0; i < walking_frame_count; ++i) {
+    //     walking_frames[i].srcrect = {
+    //         static_cast<float>(i) * frame_w,
+    //         0.0f,
+    //         frame_w,
+    //         frame_h
+    //     };
+    //     walking_frames[i].texture = walking_texture;
+
+    //     printf("frame %d src: x=%.1f y=%.1f w=%.1f h=%.1f\n",
+    //         i,
+    //         walking_frames[i].srcrect.x,
+    //         walking_frames[i].srcrect.y,
+    //         walking_frames[i].srcrect.w,
+    //         walking_frames[i].srcrect.h);
+    // }
+
+    
+    Uint32 walking_frame_cooldown = walking_frame_duration;
+    float x;
+    // Getting the keyboard event ready:
+    const bool *keyboard = SDL_GetKeyboardState(NULL);
     bool quit = false;
     while (!quit) //! This is basically an event loop we are creating
     {
+        const Uint32 begin = SDL_GetTicks();
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
@@ -178,6 +214,11 @@ int main(int argc, char *argv[])
             break;
             }
         }
+        if(keyboard[SDL_SCANCODE_D]){
+            x++;
+        }else if(keyboard[SDL_SCANCODE_A]){
+            x--;
+        }
         // Update state
         // Render state
         sdl(SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255));
@@ -185,8 +226,16 @@ int main(int argc, char *argv[])
         
         // sdl(SDL_RenderTexture(renderer, tileset_texture, nullptr, nullptr ));
         renderLevel(renderer, wall_texture);
-        render_tile_texture(renderer, walking_animation[0], 0, 0);
+        render_tile_texture(renderer, walking_frames[walking_frame_current], {x, 3 * TILE_SIZE - walking_frame_size, walking_frame_size, walking_frame_size} );
         SDL_RenderPresent(renderer);
+        const Uint32 dt = SDL_GetTicks() - begin;
+        if(dt < walking_frame_cooldown){
+            walking_frame_cooldown -= dt; 
+        }else{
+            walking_frame_current = (walking_frame_current+1) % walking_frame_count; 
+            walking_frame_cooldown = walking_frame_duration;
+        }
+        // Simple though for implementing the cooling was, the animation done by the "walking_frame_current" should be done above the cooling period so it can be slower, and if the delta is less then subratct them
     }
     SDL_Quit();
 
